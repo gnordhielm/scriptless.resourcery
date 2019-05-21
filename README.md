@@ -9,7 +9,7 @@ A React library for magical REST server integration.
 
 ## Motivation
 
-I'm just really tired of writing and re-writing code that manages CRUD operations, optimistic updates, socket integration, error reporting, and all the other common concerns that show up when you're trying to get your React app to talk to a REST server.
+I'm really tired of writing and re-writing code that manages CRUD operations, optimistic updates, Socket integration, error reporting, and all the other common concerns that show up when you're trying to get your React app to talk to a REST server.
 
 I've tried to identify and codify common elements between implementations, and write them one last time in an easy-to-use interface.
 

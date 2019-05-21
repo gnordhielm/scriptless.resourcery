@@ -1,5 +1,10 @@
 {
-    "cSpell.ignoreWords": [
-        "scriptless"
-    ]
+  "search.exclude": {
+    "**/node_modules": false,
+    "/node_modules": true
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": false,
+    "/node_modules/**": true
+  }
 }

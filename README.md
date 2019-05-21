@@ -5,7 +5,7 @@
 [![npm](https://img.shields.io/npm/dt/@scriptless/resourcery.svg?style=flat-square)](https://www.npmjs.com/package/@scriptless/resourcery)
 [![npm](https://img.shields.io/npm/v/@scriptless/resourcery.svg?style=flat-square)](https://www.npmjs.com/package/@scriptless/resourcery)
 
-Magical REST server/React integration.
+A React library for magical REST server integration.
 
 ## Motivation
 

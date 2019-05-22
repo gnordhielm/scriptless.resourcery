@@ -13,17 +13,39 @@ You'll need two things to get started: a React app and a REST server.
 
 Install the library with `npm install @scriptless/resourcery`.
 
----
+Then, give `resourcery` the ability to share information with components in your app.
 
-First, we need to to describe a new resource (as an example, we'll be interacting with a "recipe"). We'll tell `resourcery` how to read one recipe.
+```jsx
+// index.js
+
+import React from 'react'
+import ReactDOM from 'react-dom'
+import { ResourceProvider } from 'resourcery'
+import Router from 'components/Router'
+
+const App = (
+  <ResourceProvider>
+    <Router />
+  </ResourceProvider>
+)
+
+const MOUNT_NODE = document.getElementById('root')
+
+ReactDOM.render(<App />, MOUNT_NODE)
+```
+
+### Inspect
+
+To begin, we need to to describe a new resource and tell `resourcery` how to "inspect" it.
 
 ```js
 // resources/Recipe.js
+
 import axios from 'axios'
 import { createResource } from 'resourcery'
 
 const RecipeResource = createResource('Recipe')(describe => {
-  describe('readOne')(recipeId =>
+  describe.inspect(recipeId =>
     axios.get(`https://myapi.co/v1/recipes/${recipeId}`),
   )
 })
@@ -31,41 +53,23 @@ const RecipeResource = createResource('Recipe')(describe => {
 export default RecipeResource
 ```
 
-Now, `resourcery` knows how to inspect (read) and save changes to (update) a recipe.
+> `resourcery` makes a distinction between operations which read one vs. read many - it calls them "inspect" and "index", respectively.
 
-> Check out the model reference section to see all the things you can tell `resourcery` about a recipe.
+---
 
-Next, we'll give `resourcery` the ability to share information with components in our app.
-
-```jsx
-// index.js
-import React from 'react'
-import ReactDOM from 'react-dom'
-import { ResourceProvider } from 'resourcery'
-// ...
-
-const App = <ResourceProvider>// ...</ResourceProvider>
-const MOUNT_NODE = document.getElementById('root')
-
-ReactDOM.render(<App />, MOUNT_NODE)
-```
-
-Now, we'll use resourcery to get things done. Let's start by getting our recipe loaded up.
+Now, we'll make use of `resourcery` in a component, we do this with the `useResource` hook.
 
 ```jsx
 // components/RecipePage.js
+
 import React from 'react'
 import { useResource } from 'resourcery'
-
 import RecipeResource from 'resources/Recipe'
-import RecipeResource from 'resources/Recipe'
-
-const useRecipeResource = useResource(RecipeResource)
 
 const RecipePage = ({ recipeId }) => {
-  const { resource: recipe, isFetching } = useRecipeResource(recipeId)
+  const { resource: recipe } = useResource(RecipeResource)(recipeId)
 
-  if (isFetching) return 'Loading...'
+  if (recipe === null) return 'Loading...'
 
   return (
     <div className="RecipePage">
@@ -80,43 +84,62 @@ const RecipePage = ({ recipeId }) => {
 export default RecipePage
 ```
 
-> Because of the configuration we did in our resource file, the `useResource` hook knows how to fetch all the information we need.
+> Provided a resource with an "inspect" function and an ID, `useResource` will take care of getting all the information we need.
 
-Now we'll wire in the update functionality. Let's say we want to be able to update the body (and we have a nice text input component that'll provide a save button).
+### Update
 
-  <!-- describe.save(({ recipeId, changes }) =>
-    axios.put(`https://myapi.co/v1/recipes/${recipeId}`, changes)
-  ) -->
+Let's tell `resourcery` how to update our resource.
+
+```js
+// resources/Recipe.js
+
+import axios from 'axios'
+import { createResource } from 'resourcery'
+
+const RecipeResource = createResource('Recipe')(describe => {
+  describe.inspect(recipeId =>
+    axios.get(`https://myapi.co/v1/recipes/${recipeId}`),
+  )
+  describe.update(({ recipeId, changes }) =>
+    axios.put(`https://myapi.co/v1/recipes/${recipeId}`, changes),
+  )
+})
+
+export default RecipeResource
+```
+
+---
+
+We can make use of the new "update" function via the hook we already have set up.
 
 ```jsx
 // components/RecipePage.js
+
 import React, { useCallback } from 'react'
 import { useResource } from 'resourcery'
 import RecipeResource from 'resources/Recipe'
 import TextInput from 'components/TextInput'
 
-const useRecipeResource = useResource(RecipeResource)
-
 const RecipePage = ({ recipeId }) => {
-  const { resource: recipe, isFetching, save } = useRecipeResource(recipeId)
+  const { resource: recipe, update } = useResource(RecipeResource)(recipeId)
 
-  const handleSaveBody = useCallback(
+  const handleUpdateBody = useCallback(
     newBody =>
-      save(lastRecipe => ({
+      update(lastRecipe => ({
         ...lastRecipe,
         body: newBody,
       })),
-    [save],
+    [update],
   )
 
-  if (isFetching) return 'Loading...'
+  if (recipe === null) return 'Loading...'
 
   return (
     <div className="RecipePage">
       <h1 className="__title">{recipe.title}</h1>
       <img className="__image" src={recipe.image} />
       <div className="__intro">{recipe.overlongIntroductoryEssay}</div>
-      <TextInput value={recipe.body} onSave={handleSaveBody} />
+      <TextInput value={recipe.body} onSave={handleUpdateBody} />
     </div>
   )
 }
@@ -124,7 +147,54 @@ const RecipePage = ({ recipeId }) => {
 export default RecipePage
 ```
 
-That's a good start isn't it? I should note that at this point we already have optimistic updates wired in, and a guarantee that any other component `useResource`-ing this resource will have the updated version.
+> At this point we already have optimistic updates wired in, and a guarantee that every other component `useResource`-ing this resource instance will be provided the updated version.
+
+---
+
+It might be desirable to tell the user when when the page is in the process of updating the resource. Because our update function must return a promise, we can take advantage of it.
+
+```jsx
+// components/RecipePage.js
+
+import React, { useCallback, useState } from 'react'
+import { useResource } from 'resourcery'
+import RecipeResource from 'resources/Recipe'
+import TextInput from 'components/TextInput'
+
+const RecipePage = ({ recipeId }) => {
+  const { resource: recipe, update } = useResource(RecipeResource)(recipeId)
+  const [isSavingBody, setIsSavingBody] = useState(false)
+
+  const handleUpdateBody = useCallback(
+    newBody => {
+      setIsSavingBody(true)
+      return update(lastRecipe => ({
+        ...lastRecipe,
+        body: newBody,
+      })).finally(() => {
+        setIsSavingBody(false)
+      })
+    },
+    [update, setIsSavingBody],
+  )
+
+  if (recipe === null) return 'Loading...'
+
+  return (
+    <div className="RecipePage">
+      <h1 className="__title">{recipe.title}</h1>
+      <img className="__image" src={recipe.image} />
+      <div className="__intro">{recipe.overlongIntroductoryEssay}</div>
+      <TextInput value={recipe.body} onSave={handleUpdateBody} />
+      {isSavingBody && 'Saving...'}
+    </div>
+  )
+}
+
+export default RecipePage
+```
+
+> Keep in mind, this can lead to React warnings if the update resolves when `RecipePage` is no longer mounted. You may want to add a check in your resolve handlers following [this pattern](https://itnext.io/introduction-to-abortable-async-functions-for-react-with-hooks-768bc72c0a2b).
 
 ## Reference
 

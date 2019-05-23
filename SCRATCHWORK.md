@@ -278,13 +278,26 @@ resources/
 // index.js
 
 import { createResource } from 'resourcery'
-import properties from './properties'
-import actions from './actions'
 
-const Recipe = createResource('Recipe')({
-  actions,
-  properties,
-})
+const Recipe = createResource('Recipe')(({ recipeId }) =>
+  axios.get(`https://myapi.co/v1/recipes/${recipeId}`),
+)
 
 export default Recipe
+
+// actions.js
+
+import Recipe from 'resources/Recipe'
+
+export const addIngredient = Recipe.action(
+  ({ newIngredient, recipeId }) => ({ getStore, dispatch }) => {
+    // deliver immediate state update
+    // deliver final state update
+  },
+)
+// export const addIngredient = Recipe.completeAction() // an action type which actually syncs the store to the server without a need for a refetch
 ```
+
+Imagine the complexities that come with updating parents in this way. Like - two update responses go out that will have competing results - say they both increment a count on the parent. Do we want to ensure they both follow all of their steps in call order?
+
+What if I just take a step back, treat this all like one big json tree, and try to manage really abstract updating from afar.

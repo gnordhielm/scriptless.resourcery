@@ -1,8 +1,11 @@
+'use strict';
+
 // import createModel from 'model/create'
 // import createView from 'view/create'
-
 // export { createModel, createView }
-export default {
+var index = {
   foo: 'bar',
-  baz: 'quux',
-}
+  baz: 'quux'
+};
+
+module.exports = index;

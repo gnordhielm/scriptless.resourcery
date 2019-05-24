@@ -19,7 +19,9 @@
     "test": "jest",
     "test:watch": "npm test -- --watch",
     "test:cov": "npm test -- --coverage",
+    "start": "rollup -cw",
     "build": "rollup -c",
+    "clean": "rimraf lib dist es coverage",
     "prepare": "npm run clean &&  npm run lint && npm test",
     "examples:test": "cross-env CI=true babel-node examples/testAll.js"
   },
@@ -36,14 +38,13 @@
     "react-dom": ">=16.8.x"
   },
   "dependencies": {
+    "rimraf": "=2.6.3",
     "rollup-plugin-babel": "=4.3.2",
     "rollup-plugin-node-resolve": "=5.0.0",
     "rollup-plugin-replace": "=2.2.0",
     "rollup-plugin-terser": "=4.0.4"
   },
   "devDependencies": {
-    "react": "16.8.x",
-    "react-dom": "16.8.x",
     "@babel/cli": "7.4.3",
     "@babel/core": "7.4.3",
     "@babel/node": "7.2.2",
@@ -58,14 +59,17 @@
     "eslint": "5.16.0",
     "eslint-config-react-app": "3.0.8",
     "eslint-plugin-import": "2.17.2",
-    "eslint-plugin-jsx-a11y": "6.2.1",
     "eslint-plugin-react": "7.12.4",
+    "eslint-plugin-jest": "~22.5.1",
+    "eslint-plugin-react-hooks": "~1.6.0",
     "jest": "24.7.1",
     "prettier": "1.17.0",
-    "rollup": "1.10.1",
+    "react": "16.8.x",
+    "react-dom": "16.8.x",
+    "rollup": "1.12.2",
     "rollup-plugin-babel": "4.3.2",
-    "rollup-plugin-node-resolve": "4.2.3",
-    "rollup-plugin-replace": "2.2.0",
+    "rollup-plugin-commonjs": "10.0.0",
+    "rollup-plugin-node-resolve": "5.0.0",
     "rollup-plugin-terser": "4.0.4"
   },
   "keywords": [

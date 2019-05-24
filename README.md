@@ -207,3 +207,7 @@ I've tried to identify and codify common elements between implementations, and w
 This system comes with one pitfall: you have to learn and buy into an opinionated, multifaceted API. But once you do, you'll find a lot of toil taken out of your development experience. If I've done my job correctly, you'll also benefit from the clear language resourcery uses to describe the concepts which underlie this topic.
 
 This library will never get in your way. Whenever you want to configure more or exert more control, there's a way.
+
+## The Future
+
+In its ideal form, this library would totally abstract the task of managing data in a react app, provide a crazy simple API which delivers no surprises, and be a comprehensive model of all the concepts that compose this problem. There are a number of ways in which the library in its current state falls short of this (the API is the primary sticking point, in my opinion). My hope is to get a clearer/more opinionated grasp on what this library is meant to do as it's used in production. With that feedback, each version will move toward that ideal form.

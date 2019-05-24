@@ -683,4 +683,130 @@ class ToggleIsPublic extends Mutation {
 
 ```
 
-And there is still a question about handling lists. As far as the user is concerned, lists should only exist at the hook level.
+And there is still a question about handling lists. As far as the user is concerned, lists should only exist at the hook level, and on a create action, there could be a case where a user would have to go through every goddamn list within the store and determine if it should be altered. At that point, this library is in no way better than redux.
+
+Maybe a user should never be passed the whole store? If a mutation on one resource has a side-effect, they can handle that imperatively as well.
+
+```js
+const toggleIsPublic = createMutation({
+  mutate: args => store =>
+    sideEffect({ ...store }, RecipeList.updatePublicCount()),
+  updateStoreBeforeMutate: args => store => ({ ...store }),
+})
+```
+
+Now we're back to this topic of describing imperative processes over time in js.
+
+Back to the list thing, maybe that should be a totally automated thing. All you do is say whether the list needs to be fetched again. Then the list can use the store to figure out if anything needs to change. React asks you to opt-in to a lot of updates, it seems like for this to be effective, you actually need to opt-out of a lot of them. That's not predictable.
+
+I think the solution is to really break down how the store can be modified - we need pre-fab mutations, to a degree.
+
+A resource can be fetched
+A resource can have one of its properties changed
+As a result of a property change, one resource can cause another resource's properties to change
+A resource can be deleted directly
+A resource can be deleted because its not being used
+A resource can be created
+
+(Don't thing about lists right now. It's just one resource for the time being.)
+
+(Construct/Model) vs Resource vs View.
+
+I want to abstract the fetching part. It's not a good practice to be hitting the server more often than you need to. That'll happen a lot if fetches are being re-triggered a bunch when they don't need to. I guess that's going to be more of a problem for searches.
+
+read write
+get set
+see change
+accept request
+
+a resource is not a recipe, its a description of everything that a recipe can be and do.
+Maybe it should be called a description. Or a construct. Eh, it's a description of how a recipe can be read and written, a model is a description of the qualities of a recipe.
+
+Qualities/objects
+potentiality/actuality
+
+It's valuable to enumerate a recipe's qualities because we can evaluate whether the actuality of the object every violates its potentiality.
+
+But this is redundant - if we can comprehensively describe its potentiality and use those descriptions to alter it - wait, that's the problem, sometimes _we_ alter it from our end, others _the object_ mutates by a cause separate from our control. What if we lock one of those down? In a declarative model, we're kind of relinquishing the idea that we can alter it from our end. It can have changed, and when it does we want to respond.
+
+object => subject => object
+
+That's a really tough transition to capture.
+
+Can we call essential qualities objective and non-essential (i.e. state subjective)? I don't think that's quite right, that a recipe is in an updating state is subjective, but so are the qualities being reported by an optimistic update to the store.
+
+It's so tempting to fall back to an imperative model - it's so much goddamn easier when you're describing something coming from the end user.
+
+Actually - where does the end user fit into all of this?
+
+In an input, based on their keystrokes, they are actually calling functions for us. Is it safe to think of them as the same as the client code?
+
+What is rendered by the client is essentially a shell, what we think will be valuable and intelligible to the end user. We can describe that task as a collection of compartmentalized and specifically arranged functions, which are nearly agnostic to state. Nearly, because effects kind of confuse this. Now, each of these functions will behave differently based on how they have been in the past. I've always liked the idea that a component can "hook" into some kind of state shared by the whole app. I'm not sure how to think about a function having a local state based on where in the arrangement it's called.
+
+So, being totally declarative would look like this:
+
+objective => subjective
+
+But if the user is interacting with functions which are based on subjective information, then there's going to be a problem allowing those interactions to modify objective values.
+
+Unless we can safely convert between both with zero discrepancies. Actually, we only need to do this where modifications can occur. When we're delivering information, we only need to convert one way. Although, conceptually, it's really hard to track the cause of a user action - which can be caused by them reading something subjective.
+
+I feel like there's a fractal model that works here. (agh, I want to use models, not graphs).
+
+for any quality (an object can be a quality of another object), we have to describe a transformation to a subjective state and objective.
+
+1558716889194 => May 24
+
+Okay. There's a problem already. May 24 is not the same as 1558716889194.
+It's the same as May 24 2019 9:54:00:00 AM PST. But there are cases where a user only needs to know that it's the 24th. And others where they want to know how many seconds ago something happened.
+
+This is where it gets super fuzzy.
+
+There's no way I'm going to ask people to enumerate all the reasons for applying some kind of filter to a piece of data to show it to a user.
+
+But just for fun, what would that look like here?
+
+Say this is a transaction in venmo. It'll kind of count back relative time until it reaches a certain point, then it'll show you day and month. I actually don't feel equipped to say why that is. I _feel_ like exposing finer detail when a transaction is more recent is kind of a design win - less actual text on the screen without saying May 24 2019 9:54:00 AM. And if you just show a count of seconds later on, it ends up being unintelligible. Plus you're showing a lot of characters. Is this an optimization or is this essential to the user experience? Hard to say.
+
+But I'm thinking that there is a problem with saying this property in this recipe gets transformed to this, period. Because in different contexts, the same information could be transformed differently. You'd want to make that call at the component level.
+
+But you would want to make sure it's the right "type" of information at the service level.
+
+server -> app(service -> state -> component) -> user
+
+user -> intent -> input -> (app -> server -> app) -> user
+
+so - a "type" of information is valuable.
+
+Timestamp => validate/transform (say, seconds to ms)
+
+If the frontend is an island. Then it makes sense to affirm a match between what is expected and what is delivered. That means, past the point of delivery, we _know_ the shape everything is in.
+
+The other big handoff is to the user. We maintain a sane relationship with them by doing a few things... usually just showing them the result of their action. With a date picker, we'll store the result as 1558716889194, but they may never be aware of this. Our whole job on the frontend is to show them the most appropriate encapsulation of the data they're interacting with. So there's another resolve/format moment here.
+
+datum
+
+fromServer <=> toServer
+
+FE state
+
+toUser <=> fromUser
+
+Ideally, you don't have any rote formatting to do by the time a user is interacting with a button or input.
+
+It should all be about making json visual, which is out of the scope of this project.
+
+so it's back to
+
+fromServer <=> toServer
+FE state
+
+which is certainly better.
+
+But it is worth noting that there's a layer of "unknown" between what a user sees and does and the information coming into resourcery.
+
+The path of a modification is - external trigger -> internal function -> store update -> request ... -> follow up store update
+
+Now the store is in sync. Period.
+
+That ... is exactly where the problem is.

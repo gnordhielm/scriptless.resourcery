@@ -1,0 +1,41 @@
+{
+  "env": {
+    "browser": true,
+    "amd": true,
+    "node": true,
+    "es6": true,
+    "jest/globals": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:react/recommended",
+    "plugin:jest/recommended"
+  ],
+  "parser": "babel-eslint",
+  "parserOptions": {
+    "ecmaFeatures": {
+      "jsx": true
+    },
+    "ecmaVersion": 2018,
+    "sourceType": "module"
+  },
+  "plugins": ["react", "react-hooks", "jest"],
+  "rules": {
+    "linebreak-style": ["warn", "unix"],
+    "quotes": ["warn", "single", "avoid-escape"],
+    "semi": ["warn", "never"],
+    "no-console": "warn",
+    "react/prop-types": "warn",
+    "jest/no-disabled-tests": "warn",
+    "jest/no-focused-tests": "error",
+    "jest/no-identical-title": "error",
+    "jest/prefer-to-have-length": "warn",
+    "jest/valid-expect": "error",
+    "react-hooks/rules-of-hooks": "error"
+  },
+  "settings": {
+    "react": {
+      "version": "16.8"
+    }
+  }
+}

@@ -301,3 +301,292 @@ export const addIngredient = Recipe.action(
 Imagine the complexities that come with updating parents in this way. Like - two update responses go out that will have competing results - say they both increment a count on the parent. Do we want to ensure they both follow all of their steps in call order?
 
 What if I just take a step back, treat this all like one big json tree, and try to manage really abstract updating from afar.
+
+Apollo does this pretty well, all of your data is just a graph. I think this is a fundamental difference in approach. You're supposed to be able to "ground" yourself on each resource. Each resource is a hub for actions and properties and predictable state updates.
+
+Is that meaningful? If you understand your code, state updates are always predictable.
+
+Recipe
+
+vs
+
+RecipeController
+inspect
+create
+update
+destroy
+
+Apollo doesn't care about giving you state information in mutations. That does make things simpler.
+
+inspect
+create
+INSTANCE -> mutations
+
+(updaters?)
+
+const {...} = Recipe.use({ id, ... })
+
+// recipe use will call the fetcher with these arguments
+const [resource, updaters] = Recipe.use({ id })
+
+// how are errors reported?
+
+if recipe === null, it's loading // or resourcery.loading
+if recipe === resourcery.error, there's an error
+
+```jsx
+const RecipePage = ({ recipeId }) => {
+  const [response, updaters] = Recipe.use({ id: recipeId })
+
+  // Error
+  // if (response instanceof Error) ...
+  if (isError(response)) return 'Error!'
+
+  // null
+  // if (response === null) ...
+  if (isLoading(response)) return 'Loading...'
+
+  // if (response instanceof Recipe) ...
+  // if (Recipe.is(response)) ...
+
+  return <RecipeDisplay {...response} />
+}
+```
+
+the resource should only be returned as the most current result of the most current outgoing result
+
+```jsx
+// const RecipePage = ({ recipeId }) => {
+  const [response, updaters] = Recipe.use({ id: recipeId })
+
+  const [response, updaters] = RecipeList.use(activeView)
+
+  const [response, updaters] = Recipe.useOne({ id: recipeId })
+  const [response, updaters] = Recipe.useMany(query)
+  response = [
+    Recipe,
+    Recipe,
+    ...
+  ]
+
+// if (isError(response)) return 'Error!'
+// if (isLoading(response)) return 'Loading...'
+
+// return
+// }
+```
+
+make sure there's a Recipe.isLoaded() util.
+
+```jsx
+const RecipePage = ({ recipeId }) => {
+  const [recipe, updaters] = Recipe.useOne({ id: recipeId })
+
+  if (isError(recipe)) return 'Error!'
+  if (isLoading(recipe)) return 'Loading...'
+
+  return (
+    <div>
+      <div>{recipe.title}</div>
+      <Checkbox
+        label="Recipe is public."
+        disabled={recipe.wasCreatedByCurrentUser && recipe.canEdit}
+        value={recipe.isPublic}
+        // onChange={updaters.toggleRecipeIsPublic}
+        onChange={isPublic => updaters.setIsPublic(isPublic)}
+      />
+    </div>
+  )
+}
+
+// this will totally break hooks linting
+// useRecipe = Recipe.use
+
+const RecipePage = ({ recipeId }) => {
+  const [recipe, { toggleIsPublic }] = Recipe.use({ id: recipeId })
+  // this means toggle is public needs to be the same in a single hook, but different between hooks
+  // this also means triggering two renders when saving is done.
+  const isSaving = useIsActionActive(toggleIsPublic)
+
+  const handleToggleIsPublic = newIsPublic => {
+    toggleIsPublic(newIsPublic)
+  }
+
+  if (isError(recipe)) return 'Error!'
+  if (isLoading(recipe)) return 'Loading...'
+
+  return (
+    <div>
+      <div>{recipe.title}</div>
+      {isSaving && 'Saving...'}
+      <Checkbox
+        label="Recipe is public."
+        disabled={recipe.wasCreatedByCurrentUser && recipe.canEdit}
+        value={recipe.isPublic}
+        onChange={handleToggleIsPublic}
+      />
+    </div>
+  )
+}
+```
+
+Apollo has a mutation component. And renders it with data based on the mutation state.
+
+Updating the cache is separated.
+
+What if returning null in the update cache instructions is the way to force a refetch? Assuming a component still exists that has a hook that needs the information, it could see that the thing was null, note that no active process is running to get the thing, and take that on itself.
+
+---
+
+is the use case where I want to show saving state in one component really important? Or - more specifically, the ui component that triggered the update.
+
+solved above
+
+---
+
+If I want to solve this hooks linting thing, I could just export useRecipe by default, using the name of the resource. I'd have to check to make sure the provided name started with an uppercase letter.
+
+There are definitely going to have to be a suite of warnings and behaviors that work one way in production and another in dev.
+
+---
+
+Kay, now we need to deal with actually running the updates.
+
+I think the design decision is: imperative updates.
+
+```js
+const toggleIsPublic = () => ({ instance, writeStore }) => ({
+  start: store => {
+    // return value updates cache
+    // cannot return undefined
+  },
+  resolve: store => {
+    //
+  },
+  reject: store => {},
+})
+```
+
+Doing this means you don't get optimistic updates for free.
+
+Does that make sense? I mean you do want to tell the store what to write when.
+
+Maybe you don't want any of this cache writing stuff to be "for free"
+
+I do like that apollo separates the definition of the action, the spaces you can fire it from, its state, and how it influences the cache.
+
+I need to support a use case where the user wants to conduct any number of async operations before finalizing the update.
+
+I could also separate useRecipe from useRecipeAction
+
+useResource useAction
+
+const recipe = useRecipeResource({id})
+const action = useRecipeAction({
+updateCache,
+saveResource,
+})
+
+that's not great for lists. and what do you do when the recipe is not a recipe?
+
+You still should return the updaters.
+
+Maybe actions should take ids when they need them.
+
+const [recipe, { toggleIsPublic, create, destroy, destroyAll }] = Recipe.use({ id: recipeId })
+
+So actions don't just target a particular recipe?
+
+const recipe = Recipe.useResource({ id: recipeId })
+const { toggleIsPublic, create, destroy, destroyAll } = Recipe.useActions()
+
+```jsx
+const RecipePage = ({ recipeId }) => {
+  const recipe = Recipe.useResource({ id: recipeId })
+  const { toggleIsPublic, create, destroy, destroyAll } = Recipe.useActions()
+  // this means toggle is public needs to be the same in a single hook, but different between hooks
+  // this also means triggering two renders when saving is done.
+  const { isActive: isSaving, error } = useActionState(toggleIsPublic)
+
+  const handleToggleIsPublic = useCallback(
+    newIsPublic => {
+      toggleIsPublic({ newIsPublic, recipeId })
+    },
+    [toggleIsPublic, recipeId],
+  )
+
+  if (isError(recipe)) return 'Error!'
+  if (isLoading(recipe)) return 'Loading...'
+
+  return (
+    <div>
+      <div>{recipe.title}</div>
+      {isSaving && 'Saving...'}
+      <Checkbox
+        label="Recipe is public."
+        disabled={recipe.wasCreatedByCurrentUser && recipe.canEdit}
+        value={recipe.isPublic}
+        onChange={handleToggleIsPublic}
+      />
+    </div>
+  )
+}
+```
+
+```js
+const toggleIsPublic = ({ recipeId }) => async ({
+  deliverStore,
+  deliverResource,
+}) => {
+  deliverResource()
+}
+```
+
+update({
+resource type,
+resource id,
+changes/write changes
+})
+
+```js
+const { result, called, error } = useQuery({ query })
+const { action, loading, error, called } = useMutation({ mutation })
+```
+
+I want get and set to be stuck to individual resources, though.
+
+```jsx
+const RecipePage = ({ recipeId }) => {
+  const recipe = Recipe.useResource({ id: recipeId })
+  const { toggleIsPublic, create, destroy, destroyAll } = Recipe.useActions()
+
+  if (isError(recipe)) return 'Error!'
+  if (isLoading(recipe)) return 'Loading...'
+
+  return (
+    <div>
+      <div>{recipe.title}</div>
+      <Checkbox
+        label="Recipe is public."
+        disabled={recipe.wasCreatedByCurrentUser && recipe.canEdit}
+        value={recipe.isPublic}
+        onChange={handleToggleIsPublic}
+      />
+    </div>
+  )
+}
+
+const toggleIsPublic = ({ recipeId }) => store => {
+  // but then the user has to manage all of the running processes.
+}
+
+const toggleIsPublic = createAction({
+  // called immediately, sync, reverted on failure
+  updateStore: ({ recipeId }) => store => ({
+    ...store,
+    recipes: {},
+  }),
+  // called immediately, async, can return new state/have effects
+  saveResource: ({ recipeId }) => store => {},
+})
+```

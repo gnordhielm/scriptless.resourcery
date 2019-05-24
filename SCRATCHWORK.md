@@ -589,4 +589,98 @@ const toggleIsPublic = createAction({
   // called immediately, async, can return new state/have effects
   saveResource: ({ recipeId }) => store => {},
 })
+
+// the above isn't a great api.
+
+// apollo's isn't that great either, to be frank. they take a mutation and an update prop. I basically want to return twice.
+
+const toggleIsPublic = createMutation({
+  service: ({ recipeId }) => store => ({}),
+  optimistic: ({ recipeId }) => store => ({}),
+})
+
+function* () {
+  yield optimistic
+  yield Promise.resolve(service) // until the promise resolves, the store needs to report itself as out of date? Or does the user need to report what's out of date? If we know something in the client wasn't read directly from the server and isn't saved to the server yet, that should matter, no?
+}
+
+// the generator would be nice if I wanted to return more than twice. Is that something I want to do?
+
+update loan checklist item,
+update loan,
+update blah...
+
+// it would make it easier to split complicated operations up into multiple files.
+
+// but no one likes that API.
+
+const toggleIsPublic = createMutation({
+  service: ({ recipeId }) => store => ({}),
+  optimistic: ({ recipeId }) => store => ({}),
+})
+
+// maybe optimistic updates should live in the component?
+// should optimistic updates be optional? If I'm expecting a user to display a resource directly from a hook, it seems kind of essential that they are.
+
+const toggleIsPublic = createMutation({
+  update: ({ recipeId }) => store => ({}),
+  optimisticUpdate: ({ recipeId }) => store => ({}),
+})
+
+// this doesn't do a great job showing that one of these methods should be a promise, the other sync.
+
+const toggleIsPublic = createMutation(optimistic)(update)
+
+const toggleIsPublic = createMutation({
+  // by design, this is optional - maybe separate "isOptimistic" from "updateStore"
+  // although that makes it seem like you can't update the store twice, which you can.
+  service: () =>  (),
+  onStart: () => (),
+  onResolve: () => (),
+  onReject: () => (),
+})
+
 ```
+
+Maybe there's a larger problem with this "update the store twice" model. I know, under the hood here, that this is an issue. If you update the store async - _literally anything can have happened in the meantime_.
+
+If I update a recipe, that recipe could have been deleted when the request comes back. Do I want to add checks to every single response? Will the user have to add checks? If they can update the whole store, I guess they will.
+
+Is there a better way of expressing a protracted process like this? Or are there a set of principles I can adhere to that guarantee some element of state looks the same before and after an update.
+
+If this library is encouraging users to ground themselves on the idea of a resource and fall back to updating the whole state, maybe there is some middle ground here.
+
+createMutation vs createStoreMutation?
+
+Or is there a good way to indicate what parts of the store need to be in place for your response to work?
+
+I think this is too fuzzy for the time being, I'll come back to it later.
+
+For now. I'll just name the mutation actions in a way that makes things clear.
+
+```js
+const toggleIsPublic = createMutation({
+  mutate: () =>  (),
+  updateStoreBeforeMutate: () =>  (),
+})
+```
+
+Oh shit, I could almost treat these like lifecycle methods.
+
+```jsx
+const toggleIsPublic = createMutation({
+  mutate: (args) => store=>  ({...store}),
+  updateStoreBeforeMutate: (args) => store=> ({...store}),
+})
+
+class ToggleIsPublic extends Mutation {
+  componentDidMount -> updateStoreBeforeMutate
+  componentWillUnmount -> updateStoreAfterMutate
+  render -> mutate
+}
+
+// eh, that's not so great.
+
+```
+
+And there is still a question about handling lists. As far as the user is concerned, lists should only exist at the hook level.

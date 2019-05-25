@@ -1,11 +1,16 @@
 'use strict';
 
+function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
+
+var React = _interopDefault(require('react'));
+
+var ResourceContext = React.createContext(null);
+
 // import createModel from 'model/create'
-// import createView from 'view/create'
-// export { createModel, createView }
+
 var index = {
-  foo: 'bar',
-  baz: 'quux'
+  ResourceProvider: ResourceProvider,
+  ResourceContext: ResourceContext
 };
 
 module.exports = index;

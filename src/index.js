@@ -2,7 +2,10 @@
 // import createView from 'view/create'
 
 // export { createModel, createView }
+import ResourceContext from 'ResourceContext'
+import ResourceProvider from './ResourceContext/ResourceProvider'
+
 export default {
-  foo: 'bar',
-  baz: 'quux',
+  ResourceProvider,
+  ResourceContext,
 }

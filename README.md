@@ -20,7 +20,7 @@ Then, give `resourcery` the ability to share information with components in your
 
 import React from 'react'
 import ReactDOM from 'react-dom'
-import { ResourceProvider } from 'resourcery'
+import { ResourceProvider } from '@scriptless/resourcery'
 import Router from 'components/Router'
 
 const App = (
@@ -42,7 +42,7 @@ To begin, we need to to describe a new resource and tell `resourcery` how to "in
 // resources/Recipe.js
 
 import axios from 'axios'
-import { createResource } from 'resourcery'
+import { createResource } from '@scriptless/resourcery'
 
 const RecipeResource = createResource('Recipe')(describe => {
   describe.inspect(recipeId =>
@@ -63,7 +63,7 @@ Now, we'll make use of `resourcery` in a component, we do this with the `useReso
 // components/RecipePage.js
 
 import React from 'react'
-import { useResource } from 'resourcery'
+import { useResource } from '@scriptless/resourcery'
 import RecipeResource from 'resources/Recipe'
 
 const RecipePage = ({ recipeId }) => {
@@ -94,7 +94,7 @@ Let's tell `resourcery` how to update our resource.
 // resources/Recipe.js
 
 import axios from 'axios'
-import { createResource } from 'resourcery'
+import { createResource } from '@scriptless/resourcery'
 
 const RecipeResource = createResource('Recipe')(describe => {
   describe.inspect(recipeId =>
@@ -116,7 +116,7 @@ We can make use of the new "update" function via the hook we already have set up
 // components/RecipePage.js
 
 import React, { useCallback } from 'react'
-import { useResource } from 'resourcery'
+import { useResource } from '@scriptless/resourcery'
 import RecipeResource from 'resources/Recipe'
 import TextInput from 'components/TextInput'
 
@@ -157,7 +157,7 @@ It might be desirable to tell the user when when the page is in the process of u
 // components/RecipePage.js
 
 import React, { useCallback, useState } from 'react'
-import { useResource } from 'resourcery'
+import { useResource } from '@scriptless/resourcery'
 import RecipeResource from 'resources/Recipe'
 import TextInput from 'components/TextInput'
 

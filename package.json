@@ -4,25 +4,19 @@
   "version": "1.0.0-alpha.0",
   "license": "MIT",
   "author": "Gus Nordhielm",
-  "main": "lib/resourcery.js",
-  "unpkg": "public/resourcery.js",
-  "module": "es/resourcery.js",
+  "main": "public/resourcery.js",
   "files": [
-    "public",
-    "lib",
-    "es",
-    "src"
+    "public"
   ],
   "scripts": {
-    "lint": "eslint src test",
     "pretest": "npm run build",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "test:watch": "npm test -- --watch",
     "test:cov": "npm test -- --coverage",
     "start": "rollup -cw",
     "build": "rollup -c",
     "clean": "rimraf lib dist es coverage",
-    "prepare": "npm run clean &&  npm run lint && npm test",
+    "prepare": "npm run clean && npm test",
     "examples:test": "cross-env CI=true babel-node examples/testAll.js"
   },
   "repository": {
@@ -54,7 +48,7 @@
     "@babel/register": "7.4.0",
     "babel-core": "7.0.0-bridge.0",
     "babel-eslint": "10.0.1",
-    "babel-jest": "24.7.1",
+    "babel-jest": "24.8.0",
     "cross-env": "5.2.0",
     "eslint": "5.16.0",
     "eslint-config-react-app": "3.0.8",
